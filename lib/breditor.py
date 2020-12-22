@@ -9,7 +9,6 @@ def make_max_line_tracer(maxlines):
         nonlocal lines
         if event == 'line':
             lines += 1
-            print(lines, file=stderr)
             if lines >= maxlines:
                 raise TimeoutError
         return tracer
