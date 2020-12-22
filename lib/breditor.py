@@ -1,13 +1,36 @@
 # Requires Brython and Ace editor
 
 from browser import document, window, html
-from sys import stderr
+from sys import stderr, settrace
+
+def make_max_line_tracer(maxlines):
+    lines = 0
+    def tracer(frame, event, arg):
+        nonlocal lines
+        if event == 'line':
+            lines += 1
+            print(lines, file=stderr)
+            if lines >= maxlines:
+                raise TimeoutError
+        return tracer
+    return tracer
 
 def exec_code(editor, id):
     stderr_frame = document[id + "_stderr"]
     stderr_frame.clear()
     stderr.write = lambda data : stderr_target(data, stderr_frame)
-    exec(editor.getValue())
+
+    code = editor.getValue()
+    compiled = compile(code, "<" + id + ">", "exec")
+
+    settrace(make_max_line_tracer(10000)) # increase to allow longer execution
+    try:
+        exec(compiled)
+    except TimeoutError:
+        settrace(None)
+        print("L'exécution prend trop de temps, abandon.", file=stderr)
+    finally:
+	settrace(None)
 
 def stderr_target(data, elt):
     elt <= data
